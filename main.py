@@ -1,18 +1,13 @@
-# main.py
-# The main application file with a completely redesigned modern UI, Gemini integration, and "Save As" functionality.
-
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import os
 import pandas as pd
-from extractor import process_invoice_file # Import from the existing extractor.py
+from extractor import process_invoice_file
 import sys
 import threading
 from tkinter import font as tkFont
 
-# --- Custom Redirector for Logs ---
 class TextRedirector(object):
-    """A class to redirect stdout to a tkinter Text widget."""
     def __init__(self, widget):
         self.widget = widget
 
@@ -23,7 +18,7 @@ class TextRedirector(object):
         self.widget.configure(state='disabled')
 
     def flush(self):
-        pass # Required for stream interface
+        pass
 
 class InvoiceApp:
     def __init__(self, root):
@@ -32,11 +27,10 @@ class InvoiceApp:
         self.root.geometry("1000x850")
         self.root.resizable(False, False)
         
-        # --- Color & Font Palette ---
         self.colors = {
             "bg_gradient_start": "#00416A",
             "bg_gradient_end": "#799F0C",
-            "glass_bg": "#2c3e50", 
+            "glass_bg": "#2c3e50",
             "card_1_bg": "#e91e63",
             "card_2_bg": "#ff9800",
             "card_3_bg": "#4caf50",
@@ -56,21 +50,17 @@ class InvoiceApp:
         self.create_widgets()
 
     def create_widgets(self):
-        # --- Gradient Background Canvas ---
         self.bg_canvas = tk.Canvas(self.root, highlightthickness=0)
         self.bg_canvas.pack(fill=tk.BOTH, expand=True)
         self.draw_gradient(self.bg_canvas, self.colors["bg_gradient_start"], self.colors["bg_gradient_end"])
         self.bg_canvas.bind("<Configure>", lambda e: self.draw_gradient(e.widget, self.colors["bg_gradient_start"], self.colors["bg_gradient_end"]))
 
-        # --- Main Glassmorphism Card ---
         self.main_card = tk.Frame(self.bg_canvas, bg=self.colors["glass_bg"], padx=40, pady=30, relief='flat')
         self.main_card.place(relx=0.5, rely=0.45, anchor='center')
 
-        # App Title
         title_label = tk.Label(self.main_card, text="Invoice Extractor For Jain & Lunkad", font=self.title_font, bg=self.colors["glass_bg"], fg=self.colors['text'])
         title_label.grid(row=0, column=0, columnspan=3, pady=(10, 20))
 
-        # --- API Key Input ---
         api_key_frame = tk.Frame(self.main_card, bg=self.colors["glass_bg"])
         api_key_frame.grid(row=1, column=0, columnspan=3, pady=(0, 20), sticky='ew')
 
@@ -80,7 +70,6 @@ class InvoiceApp:
         self.api_key_entry = tk.Entry(api_key_frame, font=self.status_font, bg=self.colors['log_bg'], fg=self.colors['text'], relief='flat', width=70, show="*")
         self.api_key_entry.pack(side=tk.LEFT, fill='x', expand=True)
 
-        # --- Step Cards ---
         card1 = self.create_step_card(self.main_card, "Step 1:\nUpload PDF Files", self.colors["card_1_bg"])
         card1.grid(row=2, column=0, sticky="ns", padx=15, pady=10)
         self.create_pdf_widgets(card1)
@@ -93,18 +82,15 @@ class InvoiceApp:
         card3.grid(row=2, column=2, sticky="ns", padx=15, pady=10)
         self.create_action_widgets(card3)
 
-        # --- Log Console ---
         self.log_frame = self.create_step_card(self.main_card, "Real-Time Logs", self.colors["log_bg"])
         self.log_frame.grid(row=3, column=0, columnspan=3, sticky="ew", padx=15, pady=20)
         self.create_log_widgets(self.log_frame)
 
-        # --- Progress Bar Section ---
         self.progress_frame = tk.Frame(self.bg_canvas, bg=self.colors["progress_bg"], padx=40, pady=20, relief='flat')
         self.progress_frame.place(relx=0.5, rely=0.9, anchor='center', width=900)
         self.create_progress_widgets(self.progress_frame)
 
     def draw_gradient(self, canvas, color1, color2):
-        """Draws a diagonal gradient on the canvas."""
         canvas.delete("gradient")
         width, height = self.root.winfo_width(), self.root.winfo_height()
         (r1, g1, b1), (r2, g2, b2) = self.root.winfo_rgb(color1), self.root.winfo_rgb(color2)
@@ -153,15 +139,15 @@ class InvoiceApp:
         
         style = ttk.Style()
         style.theme_use('clam')
-        style.configure("Custom.Horizontal.TProgressbar", 
-                       background='#4caf50',
-                       troughcolor=self.colors['glass_bg'],
-                       borderwidth=0,
-                       lightcolor='#4caf50',
-                       darkcolor='#4caf50')
+        style.configure("Custom.Horizontal.TProgressbar",
+                        background='#4caf50',
+                        troughcolor=self.colors['glass_bg'],
+                        borderwidth=0,
+                        lightcolor='#4caf50',
+                        darkcolor='#4caf50')
         
-        self.progress_bar = ttk.Progressbar(parent, style="Custom.Horizontal.TProgressbar", 
-                                          length=800, mode='determinate')
+        self.progress_bar = ttk.Progressbar(parent, style="Custom.Horizontal.TProgressbar",
+                                            length=800, mode='determinate')
         self.progress_bar.pack(pady=5)
         
         self.progress_percent = tk.Label(parent, text="0%", font=self.status_font, bg=self.colors["progress_bg"], fg=self.colors['text_muted'])
@@ -204,7 +190,7 @@ class InvoiceApp:
             messagebox.showwarning("API Key Required", "Please enter your Google Gemini API key to proceed.")
             return
             
-        if not self.pdf_file_paths: 
+        if not self.pdf_file_paths:
             messagebox.showwarning("No Files Selected", "Please select one or more PDF files.")
             return
             
@@ -216,7 +202,7 @@ class InvoiceApp:
             try:
                 self.update_progress(i, total_files, f"Processing file {i+1} of {total_files}: {os.path.basename(path)}")
                 print(f"[{i+1}/{total_files}] Processing: {os.path.basename(path)}...")
-                rows = process_invoice_file(path, api_key) 
+                rows = process_invoice_file(path, api_key)
                 all_extracted_rows.extend(rows)
                 self.update_progress(i+1, total_files, f"Completed {i+1} of {total_files} files")
             except Exception as e:
@@ -227,7 +213,7 @@ class InvoiceApp:
                 
         self.extract_button.config(state=tk.NORMAL)
         
-        if has_errors: 
+        if has_errors:
             print("Processing stopped due to an error.")
             self.progress_label.config(text="Processing stopped due to error")
         elif all_extracted_rows:
@@ -244,7 +230,6 @@ class InvoiceApp:
             'Invoice Date', 'Invoice No', 'Supplier Name', 'GSTIN/UIN', 'Consignor From Name', 'Consignor From GSTIN',
             'Item Name', 'HSN Code', 'QTY', 'Rate', 'Batch No', 'Exp Date', 'Amount', 'Narration'
         ]
-        # Ensure all columns from the order are present, filling missing ones with "NA"
         for col in column_order:
             if col not in new_df.columns:
                 new_df[col] = "NA"
@@ -260,7 +245,6 @@ class InvoiceApp:
             if os.path.exists(output_path):
                 print(f"Appending data to {os.path.basename(output_path)}...")
                 with pd.ExcelWriter(output_path, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
-                    # Check if sheet exists to determine if we need to write headers
                     if 'Sheet1' in writer.book.sheetnames:
                         startrow = writer.book['Sheet1'].max_row
                         final_df.to_excel(writer, sheet_name='Sheet1', index=False, header=False, startrow=startrow)
@@ -278,7 +262,6 @@ class InvoiceApp:
 if __name__ == "__main__":
     try:
         from extractor import pytesseract
-        # Check if tesseract is installed and working
         pytesseract.get_tesseract_version()
     except Exception:
         messagebox.showerror("Tesseract Not Found", "Tesseract OCR is not found or is not configured correctly. Please check the installation instructions in README.md.")
